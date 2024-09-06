@@ -1,5 +1,5 @@
 # SHA-256
-**Secure Hash Algorithm 256-bit**: A cryptographic method of converting input data of any kind and size, into a string of fixed number of characters. Allowed input data range: 2<sup>64</sup> bits.
+**Secure Hash Algorithm 256-bit**: A cryptographic method of converting input data of any kind and size, into a string of fixed number of characters (256 bits). Allowed input data range: 2<sup>64</sup> bits.
 
 The data process of SHA-256 is shown below:
 ![image](https://github.com/user-attachments/assets/3f5fe919-3d61-4bf1-a9c8-c53eeae42bc2)
@@ -36,3 +36,9 @@ The program should be a fast process without the needs of heavy machine power us
 Since input can have a large range or combinations and output is fixed amount of characters, hashing into same output values from different input can rarely occur (like the birthday problem).
 
 To avoid hackers taking advantage of this collision error, extend the output length to be large enough so the "birthday problem" will be computationally infeasible.
+
+**Applications:**
+
+- Verifying File Integrity
+- Storying and Validating Password
+
