@@ -58,7 +58,18 @@ assign tstep = (i - 1);
 function logic [15:0] determine_num_blocks(input logic [31:0] size);
 
   // Student to add function implementation
+  logic [31:0] total_bits;
+  logic [31:0] padding_bits;
+begin
+
+  total_bits = size * 32; // Each word is 32-bit
   
+  // Padding required: A 1-bit, followed by 0 bits, then the length (in bits)
+  padding_bits = 512 - (total_bits + 1 + 64) % 512;
+  
+  total_bits = total_bits + 1 + padding_bits + 64;
+  
+  determine_num_blocks = total_bits / 512;
 
 endfunction
 
@@ -121,28 +132,44 @@ begin
        if(start) begin
        // Student to add rest of the code
 		 
-		 // Initializing values
-		 h0 <= 6a09e667;
-		 h1 <= bb67ae85;
-		 h2 <= 3c6ef372;
-		 h3 <= a54ff53a;
-		 h4 <= 510e527f;
-		 h5 <= 9b05688c;
-		 h6 <= 1f83d9ab;
-		 h7 <= 5be0cd19;
+		 // Initialize hash values
+		 h0 <= 32'h6a09e667;
+		 h1 <= 32'hbb67ae85;
+		 h2 <= 32'h3c6ef372;
+		 h3 <= 32'ha54ff53a;
+		 h4 <= 32'h510e527f;
+		 h5 <= 32'h9b05688c;
+		 h6 <= 32'h1f83d9ab;
+		 h7 <= 32'h5be0cd19;
 		 
-		 a <= '0;
-		 b <= '0;
-		 c <= '0;
-		 d <= '0;
-		 e <= '0;
-		 f <= '0;
-		 g <= '0;
-		 h <= '0;
+		 // Initialize working variables
+		 a <= 0;
+		 b <= 0;
+		 c <= 0;
+		 d <= 0;
+		 e <= 0;
+		 f <= 0;
+		 g <= 0;
+		 h <= 0;
 		 
-		 mem_we <= 1'b0;
-		 mem_addr <= '0;
-		 // more vars
+		 // Initialize memory and control vars
+		 i <= 0;
+		 j <= 0;
+		 offset <= 0;
+		 cur_we <= 0;
+		 cur_write_data <= 0;
+		 cur_addr <= message_adr;
+		 
+		 // Calculate # of blocks
+		 num_blocks <= determine_num_blocks(NUM_OF_WORDS);
+		 
+		 // Memory
+		 mem_we <= 0;
+		 mem_addr <= 0;
+		 done <= 0;
+		 
+		 // State transition
+		 state <= READ;
 
        end
     end
