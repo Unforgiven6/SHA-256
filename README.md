@@ -40,5 +40,5 @@ To avoid hackers taking advantage of this collision error, extend the output len
 **Applications:**
 
 - Verifying File Integrity
-- Storying and Validating Password
+- Storing and Validating Password
 
