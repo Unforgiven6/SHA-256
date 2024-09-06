@@ -8,30 +8,30 @@ The goal of the project is to create a hash algorithm that converts any input da
 
 The input can be a word, a sentence, password, images, mp3 files, etc.
 
-Main properties for properly secured hashing:
+**Main properties for properly secured hashing:**
 
-- **Compression**
+- *Compression*
 
 Regardless the size of input bits, output should be fixed # of characters.
 
-- **Avalanche Effect**
+- *Avalanche Effect*
 
 Minimal changes causes drastical change in output.
 Prevention of hackers from predicting the output hash value by trial and error method.
 
-- **Determinism**
+- *Determinism*
 
 Same input will produce same output despite using different systems, for all systems that understand hashing algorithm.
 
-- **Pre-Image Resistant (One Way Function)**
+- *Pre-Image Resistant (One Way Function)*
 
 Retrieval of input data using output ought to be impossible. No algorithm to reverse the hashing process.
 
-- **Efficient (Quick Computation)**
+- *Efficient (Quick Computation)*
 
 The program should be a fast process without the needs of heavy machine power usage.
 
-- **Collision Resistance**
+- *Collision Resistance*
 
 Since input can have a large range or combinations and output is fixed amount of characters, hashing into same output values from different input can rarely occur (like the birthday problem).
 
