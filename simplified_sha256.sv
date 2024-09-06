@@ -70,6 +70,7 @@ begin
   total_bits = total_bits + 1 + padding_bits + 64;
   
   determine_num_blocks = total_bits / 512;
+end
 
 endfunction
 
@@ -83,10 +84,10 @@ begin
     // Student to add remaning code below
     // Refer to SHA256 discussion slides to get logic for this function
     ch = (e && f) ^ (~e && g);
-    t1 = h + s1 + ch + k[t] + w[t];
+    t1 = h + S1 + ch + k[t] + w[t];
     S0 = rightrotate(a, 2) ^ rightrotate(a, 13) ^ rightrotate(a, 22);
     maj = (a && b) ^ (a && c) ^ (b && c);
-    t2 = s0 + maj;
+    t2 = S0 + maj;
     sha256_op = {t1 + t2, a, b, c, d + t1, e, f, g};
 end
 endfunction
@@ -158,7 +159,7 @@ begin
 		 offset <= 0;
 		 cur_we <= 0;
 		 cur_write_data <= 0;
-		 cur_addr <= message_adr;
+		 cur_addr <= message_addr;
 		 
 		 // Calculate # of blocks
 		 num_blocks <= determine_num_blocks(NUM_OF_WORDS);
@@ -173,23 +174,80 @@ begin
 
        end
     end
-
+	 
+	 // Fetch 640(512?)-bit block from memory
+	 READ: begin
+		 if (i < 20) begin // 20 or 16?
+			mem_addr <= cur_addr + offset + i;
+			message[i] <= mem_read_data;
+			i <= i + 1;
+		 end
+		 else begin
+			i <= 0;
+			state <= BLOCK;
+		 end
+	 
+	 end
+	 
     // SHA-256 FSM 
     // Get a BLOCK from the memory, COMPUTE Hash output using SHA256 function    
     // and write back hash value back to memory
     BLOCK: begin
 	// Fetch message in 512-bit block size
 	// For each of 512-bit block initiate hash value computation
-       
-
-
-
-   
-
-
-
-
-    
+       if (i == 0) begin
+			// Assigning variables for block processing
+			a <= h0;
+			b <= h1;
+         c <= h2;
+         d <= h3;
+         e <= h4;
+         f <= h5;
+         g <= h6;
+         h <= h7;
+			
+			// Message schedule array 'w'
+			for (j = 0; j < 16; j++) begin
+				w[j] <= message[j];
+			end
+			
+			// Initialize counter for 64 rounds of SHA-256 computation
+			i <= 1;
+			
+			// State transition
+			state <= COMPUTE;
+		 end else if (i == 1) begin
+			for (j = 0; j < 4; j++) begin
+				w[j] <= message[16 + j];
+			end
+			
+			w[4] <= 32'h80000000;
+			
+			for (j = 5; j < 15; j++) begin
+				w[j] <= 32'h00000000;
+			end
+			
+			w[15] <= 32'h00000280;
+			
+			a <= h0;
+			b <= h1;
+         c <= h2;
+         d <= h3;
+         e <= h4;
+         f <= h5;
+         g <= h6;
+         h <= h7;
+			
+			if (num_blocks < 2) begin
+				state <= COMPUTE;
+			end
+			else begin
+				state <= WRITE;
+			end
+			
+			i <= 0;
+			
+		end
 
     end
 
@@ -199,30 +257,76 @@ begin
     // move to WRITE stage
     COMPUTE: begin
 	    // 64 processing rounds steps for 512-bit block 
-        if (i <= 64) begin
+       if (i == 0) begin
+			for (j = 16; j < 64; j++) begin
+				S0 = (w[j-15] >> 7) | (w[j-15] << (32-7)) ^ (w[j-15] >> 18) | (w[j-15] << (32-18)) ^ (w[j-15] >> 3);
+            S1 = (w[j-2] >> 17) | (w[j-2] << (32-17)) ^ (w[j-2] >> 19) | (w[j-2] << (32-19)) ^ (w[j-2] >> 10);
+            w[j] = w[j-16] + S0 + w[j-7] + S1;
+			end
+			
+			i <= 1;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-        end
+       end
+		 else if (i <= 64) begin
+			
+			k = sha256_constants[round-1];
+			t1 = h + ((e >> 6) | (e << (32-6))) ^ ((e >> 11) | (e << (32-11))) ^ ((e >> 25) | (e << (32-25))) + ((e & f) ^ (~e & g)) + K + w[round-1];
+         t2 = ((a >> 2) | (a << (32-2))) ^ ((a >> 13) | (a << (32-13))) ^ ((a >> 22) | (a << (32-22))) + ((a & b) ^ (a & c) ^ (b & c));
+			
+			// Update working vars
+         a <= t1 + t2;
+			b <= a;
+			c <= b;
+			d <= c;
+			e <= d + t1;
+			f <= e;
+			g <= f;
+			h <= g;
+			
+			i <= i + 1;
+		end
+		else if (i == 65) begin
+			// Update hash values
+			h0 <= h0 + a;
+         h1 <= h1 + b;
+         h2 <= h2 + c;
+         h3 <= h3 + d;
+         h4 <= h4 + e;
+         h5 <= h5 + f;
+         h6 <= h6 + g;
+         h7 <= h7 + h;
+		  
+		   num_blocks <= num_blocks + 1;
+			i <= 0;
+			
+			state <= BLOCK;
+		end
+			
     end
 
     // h0 to h7 each are 32 bit hashes, which makes up total 256 bit value
     // h0 to h7 after compute stage has final computed hash value
     // write back these h0 to h7 to memory starting from output_addr
     WRITE: begin
-   
-
+		
+		if (i < 8) begin
+			
+			mem_addr <= output_addr + i;
+			mem_write_data <= (i == 0) ? h0:
+			(i == 1) ? h1:
+			(i == 2) ? h2:
+			(i == 3) ? h3:
+			(i == 4) ? h4:
+			(i == 5) ? h5:
+			(i == 6) ? h6: h7;
+			mem_we <= 1;
+			i <= i + 1;
+		end
+		else begin
+			mem_we <= 0;
+			done <= 1;
+			state <= IDLE;
+		end
 
     end
    endcase
