@@ -7,11 +7,9 @@ module simplified_sha256 #(parameter integer NUM_OF_WORDS = 20)(
  input logic [31:0] mem_read_data);
 
 // FSM state variables 
-// Note : Students can add more states or remove states as per their implementation
 enum logic [2:0] {IDLE, READ, BLOCK, COMPUTE, WRITE} state;
 
 // Local variables
-// Note : Add or remove variables as per your implementation
 logic [31:0] w[64]; // This is for word expansion in compute sate. For optimized implementation this can be w[16]
 logic [31:0] message[20]; // Stores 20 message words after read from the memory
 logic [31:0] wt;
@@ -42,11 +40,8 @@ parameter int k[0:63] = '{
 assign num_blocks = determine_num_blocks(NUM_OF_WORDS); 
 assign tstep = (i - 1);
 
-// Note : Function defined are for reference purpose. Feel free to add more functions or modify below.
 // Function to determine number of blocks in memory to fetch
 function logic [15:0] determine_num_blocks(input logic [31:0] size);
-
-  // Student to add function implementation
   logic [31:0] total_bits;
   logic [31:0] padding_bits;
 begin
@@ -57,7 +52,6 @@ begin
 end
 endfunction
 
-// SHA256 hash round
 // SHA256 hash round
 function logic [255:0] sha256_op(input logic [31:0] a, b, c, d, e, f, g, h, w,
                                  input logic [7:0] t);
@@ -75,13 +69,6 @@ function logic [255:0] sha256_op(input logic [31:0] a, b, c, d, e, f, g, h, w,
 endfunction
 
 // Word Expansion function
-//function logic [31:0] wt_expansion(logic[7:0] t);
-	//logic [31:0] S1, S0;
-	//S0 = rightrotate(w[t-15], 7) ^ rightrotate(w[t-15], 18) ^ rightrotate(w[t-15], 3);
-	//S1 = rightrotate(w[t-2], 17) ^ rightrotate(w[t-2], 19) ^ rightrotate(w[t-2], 10);
-	//wt_expansion = w[t-16] + S0 + w[t-7] + S1;
-//endfunction
-
 function logic [31:0] wt_expansion(logic[7:0] t);
  logic [31:0] s1, s0;
  s0 = rightrotate(w[t-15], 7) ^ rightrotate(w[t-15], 18) ^ (w[t-15] >> 3);
@@ -114,7 +101,6 @@ endfunction
 // SHA-256 FSM 
 // Get a BLOCK from the memory, COMPUTE Hash output using SHA256 function
 // and write back hash value back to memory
-// Note : Inside always_ff all statements should use non-blocking assignments
 always_ff @(posedge clk, negedge reset_n)
 begin
   if (!reset_n) begin
@@ -124,7 +110,6 @@ begin
   else case (state)
     // Initialize hash values h0 to h7 and a to h, other variables and memory we, address offset, etc
     IDLE: begin 
-       // Student to add rest of the code
 		 // Initialize hash values
 		 h0 <= 32'h6a09e667;
 		 h1 <= 32'hbb67ae85;
@@ -226,13 +211,13 @@ begin
 		 else begin
 			// Update hash values
 			h0 <= h0 + a;
-         h1 <= h1 + b;
-         h2 <= h2 + c;
-         h3 <= h3 + d;
-         h4 <= h4 + e;
-         h5 <= h5 + f;
-         h6 <= h6 + g;
-         h7 <= h7 + h;
+         		h1 <= h1 + b;
+         		h2 <= h2 + c;
+         		h3 <= h3 + d;
+         		h4 <= h4 + e;
+         		h5 <= h5 + f;
+         		h6 <= h6 + g;
+         		h7 <= h7 + h;
 		  
 			j <= j + 1;
 			
