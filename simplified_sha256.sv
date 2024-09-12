@@ -10,9 +10,9 @@ module simplified_sha256 #(parameter integer NUM_OF_WORDS = 20)(
 enum logic [2:0] {IDLE, READ, BLOCK, COMPUTE, WRITE} state;
 
 // Local variables
-logic [31:0] w[64]; // This is for word expansion in compute sate. For optimized implementation this can be w[16]
+logic [31:0] w[16];
 logic [31:0] message[20]; // Stores 20 message words after read from the memory
-logic [31:0] wt;
+logic [31:0] wt, kt, ht; // Stores the computed w, k, and h in advance
 logic [31:0] h0, h1, h2, h3, h4, h5, h6, h7;
 logic [31:0] a, b, c, d, e, f, g, h;
 logic [ 7:0] i, j, n;
@@ -21,7 +21,6 @@ logic [ 7:0] num_blocks;
 logic        cur_we;
 logic [15:0] cur_addr;
 logic [31:0] cur_write_data;
-logic [512:0] memory_block;
 logic [ 7:0] tstep;
 
 // SHA256 K constants
@@ -53,12 +52,10 @@ end
 endfunction
 
 // SHA256 hash round
-function logic [255:0] sha256_op(input logic [31:0] a, b, c, d, e, f, g, h, w,
-                                 input logic [7:0] t);
+function logic [255:0] sha256_op(input logic [31:0] a, b, c, d, e, f, g, h, w, input logic [7:0] t);
     logic [31:0] S1, S0, ch, maj, t1, t2; // internal signals
 	 begin
 		 S1 = rightrotate(e, 6) ^ rightrotate(e, 11) ^ rightrotate(e, 25);
-		 // Student to add remaning code below
 		 ch = (e & f) ^ ((~e) & g);
 		 t1 = h + S1 + ch + k[t] + w;
 		 S0 = rightrotate(a, 2) ^ rightrotate(a, 13) ^ rightrotate(a, 22);
@@ -68,12 +65,11 @@ function logic [255:0] sha256_op(input logic [31:0] a, b, c, d, e, f, g, h, w,
 	 end
 endfunction
 
-// Word Expansion function
-function logic [31:0] wt_expansion(logic[7:0] t);
+function logic [31:0] wtnew(logic [7:0] t);
  logic [31:0] s1, s0;
  s0 = rightrotate(w[t-15], 7) ^ rightrotate(w[t-15], 18) ^ (w[t-15] >> 3);
  s1 = rightrotate(w[t-2], 17) ^ rightrotate(w[t-2], 19) ^ (w[t-2] >> 10);
- wt_expansion= w[t-16] + s0 + w[t-7] + s1;
+ wtnew = w[t-16] + s0 + w[t-7] + s1;
 endfunction
 
 
@@ -150,6 +146,10 @@ begin
 		else begin
 			offset <= 0;
 			state <= BLOCK;
+			
+			// Precompute w 2 cycles ahead
+			// wt <= wtnew();
+			
 		end
 	 end
 	 
@@ -159,7 +159,12 @@ begin
     BLOCK: begin
 	// Fetch message in 512-bit block size
 	// For each of 512-bit block initiate hash value computation
-       if (j < num_blocks) begin
+       
+		 // Precompute k and h 1 cycle ahead
+		 // kt <= k[tstep+1];
+		 // ht <= h6;
+		 
+		 if (j < num_blocks) begin
 		   	a <= h0;
 				b <= h1;
 				c <= h2;
@@ -172,7 +177,7 @@ begin
 	
 				// Message schedule array 'w'
 				for (n = 0; n < 16; n++) w[n] <= message[n];
-
+				
 				// State transition
 				state <= COMPUTE;
 				i <= 0;
@@ -189,7 +194,7 @@ begin
 			i <= 0;
 			state <= WRITE;
 		end
-	end
+	end	
 
     // For each block compute hash function
     // Go back to BLOCK stage after each block hash computation is completed and if
@@ -197,27 +202,27 @@ begin
     // move to WRITE stage
     COMPUTE: begin
 	    // 64 processing rounds steps for 512-bit block 
-       if (i <= 64) begin
-          if(i<16) begin 
+		if (i <= 64) begin
+       if (i < 16) begin
             {a,b,c,d,e,f,g,h} <= sha256_op(a, b, c, d, e, f, g, h, w[i], i);
-          end
-          else begin
-            w[i] <= wt_expansion(i); // perform word expansion 
-            if(i != 16) {a,b,c,d,e,f,g,h} <= sha256_op(a, b, c, d, e, f, g, h, w[i-1], i-1);
-          end
-          i <= i + 1;
-	  state <= COMPUTE;
+		 end else begin
+				for (n = 0; n < 15; n++) w[n] <= w[n+1];
+				w[15] <= wtnew(16); // Perform word expansion 
+				if (i != 16) {a,b,c,d,e,f,g,h} <= sha256_op(a, b, c, d, e, f, g, h, w[15], i-1);
+		 end
+				i <= i + 1;
+				state <= COMPUTE;
        end
 		 else begin
 			// Update hash values
 			h0 <= h0 + a;
-         		h1 <= h1 + b;
-         		h2 <= h2 + c;
-         		h3 <= h3 + d;
-         		h4 <= h4 + e;
-         		h5 <= h5 + f;
-         		h6 <= h6 + g;
-         		h7 <= h7 + h;
+         h1 <= h1 + b;
+         h2 <= h2 + c;
+         h3 <= h3 + d;
+         h4 <= h4 + e;
+         h5 <= h5 + f;
+         h6 <= h6 + g;
+         h7 <= h7 + h;
 		  
 			j <= j + 1;
 			
