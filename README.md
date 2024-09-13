@@ -33,7 +33,7 @@ The program should be a fast process without the needs of heavy machine power us
 
 - *Collision Resistance*
 
-Since input can have a large range or combinations and output is fixed amount of characters, hashing into same output values from different input can rarely occur (like the birthday problem).
+Since input can have a large range of combinations and output is a fixed amount of characters, hashing into the same output values from different input can rarely occur (like the birthday problem).
 
 To avoid hackers taking advantage of this collision error, extend the output length to be large enough so the "birthday problem" will be computationally infeasible.
 
