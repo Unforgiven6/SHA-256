@@ -2,7 +2,10 @@
 **Secure Hash Algorithm 256-bit**: A cryptographic method of converting input data of any kind and size, into a string of fixed number of characters (256 bits). Allowed input data range: 2<sup>64</sup> bits.
 
 The data process of SHA-256 is shown below:
-![image](https://github.com/user-attachments/assets/3f5fe919-3d61-4bf1-a9c8-c53eeae42bc2)
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/3f5fe919-3d61-4bf1-a9c8-c53eeae42bc2" />
+</p>
 
 The goal of the project is to create a hash algorithm that converts any input data up to **2<sup>64</sup> bits** into a fixed bit hashed output.
 
