@@ -1,4 +1,4 @@
-module tb_simplified_sha256();
+module tb_sha256();
 
 logic          clk, reset_n, start;
 logic   [15:0] message_addr, output_addr;
@@ -26,7 +26,7 @@ parameter integer NUM_OF_WORDS = 20;
 parameter integer SIZE = NUM_OF_WORDS * 32; // 20 * 32bits word = 640 bits
 
 // instantiate your design
-simplified_sha256 #(.NUM_OF_WORDS(NUM_OF_WORDS)) simplified_sha256_inst 
+sha256 #(.NUM_OF_WORDS(NUM_OF_WORDS)) sha256_inst 
 (clk, reset_n, start, message_addr, output_addr, done, mem_clk, mem_we, mem_addr, mem_write_data, mem_read_data);
 
 // SHA256 K constants
