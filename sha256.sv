@@ -1,4 +1,4 @@
-module simplified_sha256 #(parameter integer NUM_OF_WORDS = 20)(
+module sha256 #(parameter integer NUM_OF_WORDS = 20)(
  input logic  clk, reset_n, start,
  input logic  [15:0] message_addr, output_addr,
  output logic done, mem_clk, mem_we,
@@ -106,36 +106,35 @@ begin
   else case (state)
     // Initialize hash values h0 to h7 and a to h, other variables and memory we, address offset, etc
     IDLE: begin 
-		 // Initialize hash values
-		 h0 <= 32'h6a09e667;
-		 h1 <= 32'hbb67ae85;
-		 h2 <= 32'h3c6ef372;
-		 h3 <= 32'ha54ff53a;
-		 h4 <= 32'h510e527f;
-		 h5 <= 32'h9b05688c;
-		 h6 <= 32'h1f83d9ab;
-		 h7 <= 32'h5be0cd19;
+	// Initialize hash values
+	h0 <= 32'h6a09e667;
+	h1 <= 32'hbb67ae85;
+	h2 <= 32'h3c6ef372;
+	h3 <= 32'ha54ff53a;
+	h4 <= 32'h510e527f;
+	h5 <= 32'h9b05688c;
+	h6 <= 32'h1f83d9ab;
+	h7 <= 32'h5be0cd19;
 		 
-		 // Initialize working variables
-		 {a, b, c, d, e, f, g, h} <= 0;
+	// Initialize working variables
+	{a, b, c, d, e, f, g, h} <= 0;
 		 
-		 // Initialize memory and control vars
-		 i <= 0;
-		 j <= 0;
-		 n <= 0;
-		 offset <= 0;
-		 cur_we <= 0;
-		 cur_write_data <= 0;
-		 cur_addr <= message_addr;
+	// Initialize memory and control vars
+	i <= 0;
+	j <= 0;
+	n <= 0;
+	offset <= 0;
+	cur_we <= 0;
+	cur_write_data <= 0;
+	cur_addr <= message_addr;
 		 
-		 // State transition
-		 if (start) state <= READ;
-
+	// State transition when start == 1
+	if (start) state <= READ;
     end
 	 
-	 // Fetch 512-bit block from memory
-	 READ: begin
-		 if (offset <= NUM_OF_WORDS) begin
+	// Fetch 512-bit block from memory
+	READ: begin
+		if (offset <= NUM_OF_WORDS) begin
 			if (offset != 0) begin
 				message[offset-1] <= mem_read_data;
 			end
@@ -145,13 +144,9 @@ begin
 		end
 		else begin
 			offset <= 0;
-			state <= BLOCK;
-			
-			// Precompute w 2 cycles ahead
-			// wt <= wtnew();
-			
+			state <= BLOCK;			
 		end
-	 end
+	end
 	 
     // SHA-256 FSM 
     // Get a BLOCK from the memory, COMPUTE Hash output using SHA256 function    
@@ -159,100 +154,92 @@ begin
     BLOCK: begin
 	// Fetch message in 512-bit block size
 	// For each of 512-bit block initiate hash value computation
-       
-		 // Precompute k and h 1 cycle ahead
-		 // kt <= k[tstep+1];
-		 // ht <= h6;
-		 
-		 if (j < num_blocks) begin
-		   	a <= h0;
-				b <= h1;
-				c <= h2;
-				d <= h3;
-				e <= h4;
-				f <= h5;
-				g <= h6;
-				h <= h7;
-			if (j == 0) begin
-	
-				// Message schedule array 'w'
-				for (n = 0; n < 16; n++) w[n] <= message[n];
+	if (j < num_blocks) begin
+		a <= h0;
+		b <= h1;
+		c <= h2;
+		d <= h3;
+		e <= h4;
+		f <= h5;
+		g <= h6;
+		h <= h7;
+		if (j == 0) begin
+		// Message schedule array 'w'
+			for (n = 0; n < 16; n++) w[n] <= message[n];
 				
-				// State transition
-				state <= COMPUTE;
-				i <= 0;
-			end else begin
-				for (n = 0; n < 4; n++) w[n] <= message[16 + n];
-				w[4] <= 32'h80000000;
-				for (n = 5; n < 15; n++) w[n] <= 32'h00000000;
-				w[15] <= 32'h00000280;
-				state <= COMPUTE;
-				i <= 0;
-			end
-		end
-		else begin
+			// State transition
+			state <= COMPUTE;
 			i <= 0;
-			state <= WRITE;
+		end else begin
+			for (n = 0; n < 4; n++) w[n] <= message[16 + n];
+			w[4] <= 32'h80000000;
+			for (n = 5; n < 15; n++) w[n] <= 32'h00000000;
+			w[15] <= 32'h00000280;
+			state <= COMPUTE;
+			i <= 0;
 		end
-	end	
+	end
+	else begin
+		i <= 0;
+		state <= WRITE;
+	end
+    end	
 
     // For each block compute hash function
     // Go back to BLOCK stage after each block hash computation is completed and if
     // there are still number of message blocks available in memory otherwise
     // move to WRITE stage
     COMPUTE: begin
-	    // 64 processing rounds steps for 512-bit block 
-		if (i <= 64) begin
-       if (i < 16) begin
-            {a,b,c,d,e,f,g,h} <= sha256_op(a, b, c, d, e, f, g, h, w[i], i);
-		 end else begin
-				for (n = 0; n < 15; n++) w[n] <= w[n+1];
-				w[15] <= wtnew(16); // Perform word expansion 
-				if (i != 16) {a,b,c,d,e,f,g,h} <= sha256_op(a, b, c, d, e, f, g, h, w[15], i-1);
-		 end
-				i <= i + 1;
-				state <= COMPUTE;
-       end
-		 else begin
-			// Update hash values
-			h0 <= h0 + a;
-         h1 <= h1 + b;
-         h2 <= h2 + c;
-         h3 <= h3 + d;
-         h4 <= h4 + e;
-         h5 <= h5 + f;
-         h6 <= h6 + g;
-         h7 <= h7 + h;
+	// 64 processing rounds steps for 512-bit block 
+	if (i <= 64) begin
+       		if (i < 16) begin
+            		{a,b,c,d,e,f,g,h} <= sha256_op(a, b, c, d, e, f, g, h, w[i], i);
+		end else begin
+			for (n = 0; n < 15; n++) w[n] <= w[n+1];
+			w[15] <= wtnew(16); // Perform word expansion 
+			if (i != 16) {a,b,c,d,e,f,g,h} <= sha256_op(a, b, c, d, e, f, g, h, w[15], i-1);
+		end
+			i <= i + 1;
+			state <= COMPUTE;
+       	end
+	else begin
+	// Update hash values
+	h0 <= h0 + a;
+        h1 <= h1 + b;
+        h2 <= h2 + c;
+        h3 <= h3 + d;
+        h4 <= h4 + e;
+        h5 <= h5 + f;
+        h6 <= h6 + g;
+        h7 <= h7 + h;
 		  
-			j <= j + 1;
-			
-			state <= BLOCK;
-		 end
+	j <= j + 1;	
+	state <= BLOCK;
+	end
     end
 
     // h0 to h7 each are 32 bit hashes, which makes up total 256 bit value
     // h0 to h7 after compute stage has final computed hash value
     // write back these h0 to h7 to memory starting from output_addr
     WRITE: begin
-		
-		if (i < 8) begin
-			state <= WRITE;
-			i <= i + 1;
-			offset <= i;
-			cur_we <= 1'b1;
-			cur_addr <= output_addr;
-			cur_write_data <= (i == 0) ? h0:
-			(i == 1) ? h1:
-			(i == 2) ? h2:
-			(i == 3) ? h3:
-			(i == 4) ? h4:
-			(i == 5) ? h5:
-			(i == 6) ? h6: h7;
-		end
-		else begin
-			cur_we <= 0;
-			state <= IDLE;
-		end
+	if (i < 8) begin
+		state <= WRITE;
+		i <= i + 1;
+		offset <= i;
+		cur_we <= 1'b1;
+		cur_addr <= output_addr;
+		cur_write_data <= (i == 0) ? h0:
+		(i == 1) ? h1:
+		(i == 2) ? h2:
+		(i == 3) ? h3:
+		(i == 4) ? h4:
+		(i == 5) ? h5:
+		(i == 6) ? h6: h7;
+	end
+	else begin
+		cur_we <= 0;
+		state <= IDLE;
+	end
     end
    endcase
   end
